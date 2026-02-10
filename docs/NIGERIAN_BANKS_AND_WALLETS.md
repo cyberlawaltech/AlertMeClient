@@ -147,8 +147,17 @@ Digital wallets, fintech platforms, and payment service providers for quick tran
 | 7 | Interswitch | 090229 | Payment Platform | Account | ✓ Active |
 | 8 | PiggyVest | 090317 | Fintech (Savings) | Account | ✓ Active |
 | 9 | Cowrywise | 090360 | Investment Platform | Account | ✓ Active |
+| 10 | Jumia Pay | 090423 | E-commerce Payment | Account | ✓ Active |
+| 11 | KongaPay | 090424 | E-commerce Payment | Account | ✓ Active |
+| 12 | Suregifts | 090425 | Gift Card & Payment | Phone/Account | ✓ Active |
+| 13 | Wallet.ng | 090426 | Digital Wallet | Phone/Account | ✓ Active |
+| 14 | eTranzact | 090427 | Payment Solutions | Account | ✓ Active |
+| 15 | TeamApt | 090428 | Payment Solutions | Account | ✓ Active |
+| 16 | Fincra | 090429 | Cross-border Payment | Account | ✓ Active |
+| 17 | Swap | 090430 | Digital Wallet | Phone/Account | ✓ Active |
+| 18 | TymeBank | 090431 | Digital-Only Bank | Account | ✓ Active |
 
-**Total: 9+ Digital Wallets and Payment Platforms**
+**Total: 18+ Digital Wallets and Payment Platforms**
 
 ---
 
@@ -259,12 +268,12 @@ To add new banks or update existing ones:
 
 ## Statistics
 
-- **Total Banks:** 24 (11 Tier 1 + 13 Tier 2)
+- **Total Banks:** 25 (11 Tier 1 + 13 Tier 2 + 1 Digital-Only Bank)
 - **Merchant/Specialized Banks:** 3
 - **Microfinance Banks:** 22
 - **International Banks:** 3
-- **Digital Wallets/Platforms:** 9+
-- **Total Financial Institutions:** 60+
+- **Digital Wallets/Platforms:** 18+
+- **Total Financial Institutions:** 70+
 
 ---
 
