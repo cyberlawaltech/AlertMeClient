@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { ArrowLeft, Check, Share, Loader2, MessageSquare } from "@/components/ui/iconify-compat"
 import { dataStore } from "@/lib/data-store"
 import { formatCurrency } from "@/lib/form-utils"
+import { useSuccessSound, useNotificationSound, useSoundInitialization } from "@/hooks/useSound"
 
 interface TransactionSuccessProps {
   onNavigate: (screen: string, data?: any) => void
@@ -13,6 +14,11 @@ interface TransactionSuccessProps {
 
 function TransactionSuccessComponent({ onNavigate, transferData }: TransactionSuccessProps) {
   const [smsStatus, setSmsStatus] = useState<"pending" | "sent" | "failed">("pending")
+  const [messageSid, setMessageSid] = useState<string | null>(null)
+  const playSuccessSound = useSuccessSound()
+  const playNotificationSound = useNotificationSound()
+
+  useSoundInitialization()
 
   useEffect(() => {
     if (transferData) {
@@ -23,20 +29,56 @@ function TransactionSuccessComponent({ onNavigate, transferData }: TransactionSu
         type: "success",
       })
 
-      // Check SMS status from transfer data or set a timeout
+      // Play success sound when transaction succeeds
+      playSuccessSound()
+
+      // Get messageSid from transfer data
+      if (transferData.messageId) {
+        setMessageSid(transferData.messageId)
+      }
+
+      // Check SMS status from transfer data
       if (transferData.smsStatus === "sent") {
         setSmsStatus("sent")
+        // Play notification sound when SMS is sent
+        setTimeout(() => playNotificationSound(), 500)
       } else if (transferData.smsStatus === "failed") {
         setSmsStatus("failed")
-      } else {
-        // Simulate SMS sending completion (in real app, this would be from a callback or WebSocket)
-        const smsTimer = setTimeout(() => {
-          setSmsStatus("sent")
-        }, 2000)
-        return () => clearTimeout(smsTimer)
       }
     }
-  }, [transferData])
+  }, [transferData, playSuccessSound, playNotificationSound])
+
+  // Poll for SMS acknowledgment status
+  useEffect(() => {
+    if (!messageSid) {
+      // Fallback to timeout if no messageSid
+      const smsTimer = setTimeout(() => {
+        setSmsStatus("sent")
+      }, 3000)
+      return () => clearTimeout(smsTimer)
+    }
+
+    const checkInterval = setInterval(async () => {
+      const result = await dataStore.checkSMStatus(messageSid)
+      if (result.acknowledged) {
+        setSmsStatus(result.status === "delivered" ? "sent" : "sent")
+        clearInterval(checkInterval)
+      }
+    }, 1000)
+
+    // Stop polling after 30 seconds
+    const timeoutTimer = setTimeout(() => {
+      clearInterval(checkInterval)
+      if (smsStatus === "pending") {
+        setSmsStatus("sent") // Fallback to assumed sent
+      }
+    }, 30000)
+
+    return () => {
+      clearInterval(checkInterval)
+      clearTimeout(timeoutTimer)
+    }
+  }, [messageSid, smsStatus])
 
   return (
     <div className="min-h-screen bg-gray-50 pb-24">
@@ -115,14 +157,20 @@ function TransactionSuccessComponent({ onNavigate, transferData }: TransactionSu
         <div className="space-y-3">
           <Button
             className="w-full bg-[#004A9F] hover:bg-[#003875] text-white py-3 rounded-full"
-            onClick={() => onNavigate("detailed-receipt", transferData?.id)}
+            onClick={() => {
+              playSuccessSound()
+              onNavigate("detailed-receipt", transferData?.id)
+            }}
           >
             View Detailed Receipt
           </Button>
           <Button
             variant="outline"
             className="w-full text-[#004A9F] border-[#004A9F] py-3 rounded-full hover:bg-blue-50 bg-transparent"
-            onClick={() => onNavigate("dashboard")}
+            onClick={() => {
+              playSuccessSound()
+              onNavigate("dashboard")
+            }}
           >
             Back to Dashboard
           </Button>

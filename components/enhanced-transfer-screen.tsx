@@ -39,28 +39,6 @@ export function EnhancedTransferScreen({ onBack, onContinue, transferData }: Enh
       // Simulate processing delay
       await new Promise((resolve) => setTimeout(resolve, 3000))
 
-      // Add transaction to store with fee information
-      const enrichedTransferData = {
-        ...transferData,
-        fee: transferFee,
-      }
-
-      // Add transaction to store
-      await dataStore.addTransaction({
-        type: "Transfer to other bank",
-        amount: transferAmount,
-        recipient: transferData.beneficiaryName,
-        status: "Successful",
-        description: `Transfer to ${transferData.bank}`,
-        isDebit: true,
-        section: "Today",
-        recipientBank: transferData.bank,
-        recipientAccount: transferData.accountNumber,
-        senderAccount: userData.accountNumber,
-        fee: transferFee,
-      })
-
-      setIsTransferring(false)
       // Pass enriched data with fee to next screen
       onContinue()
     } catch (err) {

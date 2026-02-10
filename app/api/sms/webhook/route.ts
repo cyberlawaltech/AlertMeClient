@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { verifyTwilioSignature } from "@/lib/twilio-utils"
-import { appendWebhookEvent } from "@/lib/webhook-store"
+import { appendWebhookEvent, setSMSAcknowledgment } from "@/lib/webhook-store"
 import { incrementWebhookEvent } from "@/lib/metrics"
 
 /**
@@ -62,6 +62,11 @@ export async function POST(request: NextRequest) {
       await appendWebhookEvent(payload)
     } catch (e) {
       console.warn("Failed to persist webhook event:", e)
+    }
+
+    // Track SMS acknowledgment status
+    if (messageSid) {
+      setSMSAcknowledgment(messageSid, messageStatus || "unknown")
     }
 
     // Update in-memory metrics

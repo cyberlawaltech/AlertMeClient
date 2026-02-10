@@ -9,7 +9,13 @@ export interface SMSAlert {
   type: "debit" | "credit" | "balance" | "notification"
 }
 
-export async function sendTransactionAlert(alert: SMSAlert): Promise<void> {
+export interface SMSAlertResult {
+  success: boolean
+  messageId?: string
+  error?: string
+}
+
+export async function sendTransactionAlert(alert: SMSAlert): Promise<SMSAlertResult> {
   try {
     // Call server-side SMS endpoint
     const response = await fetch("/api/sms/send", {
@@ -29,8 +35,8 @@ export async function sendTransactionAlert(alert: SMSAlert): Promise<void> {
       } catch {
         console.warn(`   Response: ${responseText || 'Empty response'}`)
       }
-      // Don't throw - SMS is non-critical, log and continue
-      return
+      // Return failure result
+      return { success: false, error: "API error" }
     }
 
     try {
@@ -42,15 +48,19 @@ export async function sendTransactionAlert(alert: SMSAlert): Promise<void> {
         if (result.demo) {
           console.log(`   (Demo Mode)`)
         }
+        return { success: true, messageId: result.messageId }
       } else {
         console.error(`❌ SMS Alert [${alert.type.toUpperCase()}] failed: ${result.error}`)
+        return { success: false, error: result.error }
       }
       } catch (parseError) {
       console.warn(`❌ SMS Client Error: Failed to parse API response:`, parseError)
       console.warn(`   Raw Response: ${responseText}`)
+      return { success: false, error: "Parse error" }
     }
   } catch (error) {
     console.warn(`❌ SMS Service Exception:`, error)
     // Don't rethrow - SMS is non-critical. The transaction should continue even if SMS fails
+    return { success: false, error: "Service exception" }
   }
 }

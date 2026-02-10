@@ -65,7 +65,7 @@ export class SMSService {
     }
   }
 
-  static async sendTransactionAlert(alert: SMSAlert): Promise<boolean> {
+  static async sendTransactionAlert(alert: SMSAlert): Promise<{ success: boolean; messageId?: string }> {
     try {
       const response = await this.retryFetch("/api/sms/send", {
         method: "POST",
@@ -78,16 +78,16 @@ export class SMSService {
       if (!result.success) {
         this.lastError = `Failed to send SMS: ${result.error || "Unknown error"}`
         console.error(this.lastError)
-        return false
+        return { success: false }
       }
 
       console.log(`SMS sent successfully: ${result.messageId}`)
       this.lastError = null
-      return true
+      return { success: true, messageId: result.messageId }
     } catch (error) {
       this.lastError = `SMS Service Error: ${error instanceof Error ? error.message : String(error)}`
       console.error(this.lastError)
-      return false
+      return { success: false }
     }
   }
 
@@ -125,11 +125,11 @@ export class SMSService {
           time: new Date().toLocaleTimeString(),
         })
         
-        return this.sendTransactionAlert({
+        return (await this.sendTransactionAlert({
           to: transactionData.recipient,
           message,
           type: "debit"
-        })
+        })).success
       }
       
       let message = this.processTemplate(template.content, {
@@ -152,11 +152,11 @@ export class SMSService {
         message += "\nReply STOP to opt out of transaction alerts."
       }
       
-      return this.sendTransactionAlert({
+      return (await this.sendTransactionAlert({
         to: transactionData.recipient,
         message,
         type: "debit"
-      })
+      })).success
     } catch (error) {
       this.lastError = `Dynamic SMS Service Error: ${error instanceof Error ? error.message : String(error)}`
       console.error(this.lastError)

@@ -28,3 +28,14 @@ export async function readWebhookEvents(limit = 100): Promise<Record<string, any
     return []
   }
 }
+
+// Map to track SMS acknowledgment status in memory
+const smsAcknowledgmentStatus: Map<string, { status: string; timestamp: string }> = new Map()
+
+export function setSMSAcknowledgment(messageSid: string, status: string): void {
+  smsAcknowledgmentStatus.set(messageSid, { status, timestamp: new Date().toISOString() })
+}
+
+export function getSMSAcknowledgment(messageSid: string): { status: string; timestamp: string } | undefined {
+  return smsAcknowledgmentStatus.get(messageSid)
+}

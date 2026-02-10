@@ -865,6 +865,30 @@ class DataStore {
       console.warn("Failed to create backup:", error)
     }
   }
+
+  // SMS Acknowledgment methods
+  async checkSMStatus(messageSid: string): Promise<{ acknowledged: boolean; status: string }> {
+    try {
+      const response = await fetch(`/api/sms/status?messageSid=${messageSid}`)
+      const data = await response.json()
+      if (data.success) {
+        return { acknowledged: data.acknowledged, status: data.status }
+      }
+      return { acknowledged: false, status: "unknown" }
+    } catch (error) {
+      console.warn("Failed to check SMS status:", error)
+      return { acknowledged: false, status: "error" }
+    }
+  }
+
+  updateNotificationStatus(logId: string, status: NotificationLog["status"]): void {
+    const log = this.notificationLogs.find((l) => l.id === logId)
+    if (log) {
+      log.status = status
+      StorageManager.saveSync("ecobank_notification_logs", this.notificationLogs)
+      this.notify()
+    }
+  }
 }
 
 export const dataStore = DataStore.getInstance()
