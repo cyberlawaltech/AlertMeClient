@@ -164,20 +164,6 @@ export function TransferProcessingScreen({ onNavigate, transferData }: TransferP
           pulsePhase === 2 ? "scale-100 opacity-50" : pulsePhase === 3 ? "scale-125 opacity-75" : "scale-100 opacity-50"
         }`}></div>
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-gradient-to-r from-[#004A9F]/5 to-[#A4D233]/5 rounded-full blur-3xl animate-pulse"></div>
-        
-        {/* Floating Particles */}
-        {[...Array(12)].map((_, i) => (
-          <div
-            key={i}
-            className="absolute w-2 h-2 bg-[#004A9F]/20 rounded-full animate-float"
-            style={{
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
-              animationDelay: `${Math.random() * 3}s`,
-              animationDuration: `${3 + Math.random() * 4}s`,
-            }}
-          ></div>
-        ))}
       </div>
 
       <div className="relative z-10 flex flex-col min-h-screen">
