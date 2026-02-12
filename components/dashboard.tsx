@@ -1,7 +1,9 @@
 "use client"
 
 import { useState } from "react"
+import { useSoundInitialization, useNotificationSound } from "@/hooks/useSound"
 import { Button } from "@/components/ui/button"
+import SoundToggle from "@/components/sound-toggle"
 import { Card, CardContent } from "@/components/ui/card"
 import {
   Menu,
@@ -29,6 +31,8 @@ interface DashboardProps {
 export function Dashboard({ onNavigate, onMenuToggle }: DashboardProps) {
   const [isMoreExpanded, setIsMoreExpanded] = useState(false)
   const [showRecentTransactions, setShowRecentTransactions] = useState(true)
+  useSoundInitialization()
+  const playNotification = useNotificationSound()
 
   return (
     <div className="min-h-screen bg-gray-50 pb-24">
@@ -42,8 +46,11 @@ export function Dashboard({ onNavigate, onMenuToggle }: DashboardProps) {
           <div className="w-8 h-8 rounded-full bg-orange-500 flex items-center justify-center">
             <span className="text-white text-xs font-bold">J</span>
           </div>
+          <div className="pl-2">
+            <SoundToggle />
+          </div>
         </div>
-        <Button variant="ghost" size="icon">
+        <Button variant="ghost" size="icon" onClick={() => playNotification()}>
           <Bell className="h-5 w-5" />
         </Button>
       </div>

@@ -1,0 +1,4 @@
+This folder is intended for packaged sound files.
+Add MP3/OGG files here if desired, e.g. `notification.mp3`.
+
+Note: The dev server will serve files in `public/sounds/` at `/sounds/`.

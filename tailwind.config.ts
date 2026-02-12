@@ -117,6 +117,10 @@ const config: Config = {
           from: { transform: "translateY(100%)" },
           to: { transform: "translateY(0)" },
         },
+        float: {
+          "0%, 100%": { transform: "translateY(0)" },
+          "50%": { transform: "translateY(-10px)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -131,6 +135,7 @@ const config: Config = {
         "bounce-subtle": "bounce-subtle 2s ease-in-out infinite",
         "anime-fade-in": "anime-fade-in 0.5s ease-in-out",
         "anime-slide-up": "anime-slide-up 0.5s ease-in-out",
+        "float": "float 3s ease-in-out infinite",
       },
       spacing: {
         "safe-top": "env(safe-area-inset-top)",

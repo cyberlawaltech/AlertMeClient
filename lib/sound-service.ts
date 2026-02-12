@@ -78,6 +78,24 @@ export async function initializeSoundService(): Promise<void> {
 
   try {
     const audioContext = getAudioContext()
+    // Attempt to load packaged audio files from public/sounds/*
+    const PUBLIC_SOUNDS: Partial<Record<SoundType, string>> = {
+      notification: "/sounds/notification.mp3",
+      click: "/sounds/click.mp3",
+    }
+
+    for (const [type, url] of Object.entries(PUBLIC_SOUNDS)) {
+      try {
+        const resp = await fetch(url as string)
+        if (resp.ok) {
+          const arrayBuffer = await resp.arrayBuffer()
+          const decoded = await audioContext.decodeAudioData(arrayBuffer)
+          audioBuffers.set(type as SoundType, decoded)
+        }
+      } catch (e) {
+        // ignore and fallback to synthetic generation
+      }
+    }
 
     // Generate synthetic sounds for better cross-browser compatibility
     const sounds: Record<SoundType, { frequency: number; duration: number }> = {
