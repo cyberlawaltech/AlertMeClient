@@ -80,8 +80,8 @@ export async function initializeSoundService(): Promise<void> {
     const audioContext = getAudioContext()
     // Attempt to load packaged audio files from public/sounds/*
     const PUBLIC_SOUNDS: Partial<Record<SoundType, string>> = {
-      notification: "/sounds/notification.mp3",
-      click: "/sounds/click.mp3",
+      notification: "/sounds/notification.wav",
+      click: "/sounds/click.wav",
     }
 
     for (const [type, url] of Object.entries(PUBLIC_SOUNDS)) {
