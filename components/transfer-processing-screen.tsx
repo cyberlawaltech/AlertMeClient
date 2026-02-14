@@ -99,40 +99,13 @@ export function TransferProcessingScreen({ onNavigate, transferData }: TransferP
                 fee: transferData.fee || 30,
               })
 
-              // Fire-and-forget SMS notification
-              let messageId: string | null = null
-              try {
-                const userData = dataStore.getUserData()
-                const amount = Number.parseFloat(transferData.amount || "0")
-                const balance = userData.balance - amount
-                const message = SMSService.generateDebitAlert(
-                  amount,
-                  transferData.beneficiaryName || "Recipient",
-                  balance,
-                  id,
-                  transferData.bank || "ECOBANK",
-                )
-
-                SMSService.sendTransactionAlert({ to: userData.phone, message, type: "debit" })
-                  .then((smsResult) => {
-                    if (!smsResult?.success) {
-                      console.warn("[Transfer] SMS alert failed:", SMSService.getLastError() || "Unknown SMS error")
-                    } else if (smsResult.messageId) {
-                      messageId = smsResult.messageId
-                    }
-                  })
-                  .catch((err) => console.warn("[Transfer] SMS sending error:", err))
-              } catch (smsErr) {
-                console.warn("[Transfer] SMS background error:", smsErr)
-              }
-
               const successData = {
                 ...transferData,
                 id,
                 beneficiaryName: transferData?.beneficiaryName || "Recipient",
                 timestamp: new Date().toISOString(),
                 smsStatus: "pending",
-                messageId: messageId,
+                messageId: null,
               }
 
               onNavigate("transaction-success", successData)

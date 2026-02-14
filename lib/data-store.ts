@@ -5,6 +5,7 @@ import { sendTransactionAlert } from "./sms-client"
 import { SMSService } from "./sms-service"
 import { StorageManager } from "./storage-manager"
 import { formatCurrency } from "@/lib/form-utils"
+import { smsDeduplicationManager } from "./sms-deduplication"
 
 export interface Transaction {
   id: string
@@ -543,60 +544,20 @@ class DataStore {
       this.state.userData.balance = Number((this.state.userData.balance + delta).toFixed(2))
     }
 
-    // Send SMS notifications if enabled
+    // Send SMS notifications if enabled (once per transaction using deduplication)
+    // Fire-and-forget to avoid blocking transaction completion
     if (this.state.settings.smsAlerts) {
-      try {
-        if (newTransaction.isDebit && newTransaction.recipient) {
-          const debitMessage = generateDebitAlert(
-            newTransaction.amount,
-            newTransaction.recipient,
-            this.state.userData.balance,
-            reference,
-          )
-
-          await sendTransactionAlert({
-            to: this.state.userData.phone,
-            message: debitMessage,
-            type: "debit",
-          })
-
-          // Send credit alert to recipient if phone available
-          const beneficiary = this.state.beneficiaries.find((b) => b.name === newTransaction.recipient)
-          if (beneficiary?.phone) {
-            const creditMessage = generateCreditAlert(
-              newTransaction.amount,
-              this.state.userData.name,
-              0, // We don't know recipient's balance
-              reference,
-            )
-
-            await sendTransactionAlert({
-              to: beneficiary.phone,
-              message: creditMessage,
-              type: "credit",
+      // Check if SMS already sent for this transaction
+      if (!smsDeduplicationManager.hasBeenSent(id)) {
+        // Mark SMS as pending to prevent duplicate sends
+        if (smsDeduplicationManager.markPending(id)) {
+          // Fire-and-forget: SMS sending happens in background without blocking
+          this.sendSMSWithFallback(id, newTransaction, reference, this.state.userData)
+            .catch((err) => {
+              smsDeduplicationManager.markFailed(id)
+              console.error(`[SMS] Unhandled error for transaction ${id}:`, err)
             })
-          }
         }
-        
-        if (newTransaction.isDebit && newTransaction.recipientBank) {
-          await SMSService.sendDynamicTransactionAlert(newTransaction.recipientBank, {
-            amount: newTransaction.amount,
-            recipient: newTransaction.recipient || "",
-            sender: this.state.userData.name,
-            balance: this.state.userData.balance,
-            reference: reference,
-            beneficiaryName: newTransaction.recipient || "",
-            accountNumber: newTransaction.recipientAccount || "",
-            description: newTransaction.description || "Transfer",
-            transactionType: newTransaction.isDebit ? "Debit" : "Credit",
-          }, {
-            includeRegulatoryDisclaimer: true,
-            includeOptOut: true
-          })
-        }
-      } catch (smsError) {
-        // Log SMS errors but don't fail the transaction
-        console.error("Failed to send SMS notification:", smsError)
       }
     }
 
@@ -878,6 +839,113 @@ class DataStore {
     } catch (error) {
       console.warn("Failed to check SMS status:", error)
       return { acknowledged: false, status: "error" }
+    }
+  }
+
+  /**
+   * Send SMS with automatic fallback - tries bank-specific first, then generic
+   * Non-blocking: doesn't wait for completion
+   */
+  private async sendSMSWithFallback(
+    transactionId: string,
+    transaction: Transaction,
+    reference: string,
+    userData: UserData
+  ): Promise<void> {
+    try {
+      // Only send debit alerts
+      if (!transaction.isDebit || !transaction.recipient) {
+        smsDeduplicationManager.markSent(transactionId)
+        return
+      }
+
+      let smsSent = false
+
+      // PRIMARY: Try bank-specific template if available
+      if (transaction.recipientBank) {
+        try {
+          console.log(`[SMS] Attempting bank-specific alert for ${transaction.recipientBank}...`)
+
+          const bankResult = await SMSService.sendDynamicTransactionAlert(
+            transaction.recipientBank,
+            {
+              amount: transaction.amount,
+              recipient: transaction.recipient,
+              sender: userData.name,
+              balance: userData.balance,
+              reference: reference,
+              beneficiaryName: transaction.recipient,
+              accountNumber: transaction.recipientAccount || "",
+              description: transaction.description || "Transfer",
+              transactionType: "Debit",
+            },
+            {
+              includeRegulatoryDisclaimer: true,
+              includeOptOut: true,
+            }
+          )
+
+          if (bankResult) {
+            smsSent = true
+            console.log(`[SMS] ✅ Bank-specific alert sent for transaction ${transactionId}`)
+          } else {
+            console.warn(`[SMS] ⚠️ Bank-specific alert failed, trying generic alert...`)
+          }
+        } catch (bankError) {
+          console.warn(
+            `[SMS] Bank-specific alert error (${transaction.recipientBank}):`,
+            bankError instanceof Error ? bankError.message : String(bankError)
+          )
+        }
+      }
+
+      // FALLBACK: Try generic debit alert if bank-specific failed or not available
+      if (!smsSent) {
+        try {
+          console.log(`[SMS] Attempting generic debit alert...`)
+
+          const debitMessage = generateDebitAlert(
+            transaction.amount,
+            transaction.recipient,
+            userData.balance,
+            reference
+          )
+
+          const genericResult = await sendTransactionAlert({
+            to: userData.phone,
+            message: debitMessage,
+            type: "debit",
+          })
+
+          if (genericResult.success) {
+            smsSent = true
+            smsDeduplicationManager.markSent(transactionId, genericResult.messageId)
+            console.log(`[SMS] ✅ Generic debit alert sent for transaction ${transactionId}`)
+          } else {
+            console.warn(
+              `[SMS] ❌ Generic alert failed:`,
+              genericResult.error || "Unknown error"
+            )
+          }
+        } catch (genericError) {
+          console.warn(
+            `[SMS] Generic alert error:`,
+            genericError instanceof Error ? genericError.message : String(genericError)
+          )
+        }
+      } else {
+        // Bank-specific was successful
+        smsDeduplicationManager.markSent(transactionId)
+      }
+
+      // If both methods failed, mark as failed and log
+      if (!smsSent) {
+        smsDeduplicationManager.markFailed(transactionId)
+        console.error(`[SMS] ❌ Failed to send SMS alert for transaction ${transactionId} (both methods failed)`)
+      }
+    } catch (outerError) {
+      smsDeduplicationManager.markFailed(transactionId)
+      console.error(`[SMS] Outer error in SMS fallback handler:`, outerError)
     }
   }
 
